@@ -4,7 +4,9 @@ Learning the causal-interaction network of multivariate Hawkes processes is a us
 
 ## Install
 
-The `varhawkes` package must be be installed to run the examples. To install it, run 
+First `swig` must be installed beforehand in order to install the library `tick` used to generate realizations of multivariate Hawkes processes. See the [official repository](https://github.com/X-DataInitiative/tick) of the library for more information.
+
+Then, the `varhawkes` package must be installed to run the examples. To install it, run
 
     python setup.py -e varhawkes/
 

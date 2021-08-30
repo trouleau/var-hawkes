@@ -31,7 +31,6 @@ setup(
 
     # Author details
     author='William Trouleau, Farnood Salehi',
-    # author_email='ANONYMOUS@ANONYMOUS.COM',
 
     # Choose your license
     license='MIT',
@@ -71,7 +70,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=["numpy", "scipy", "torch"],
+    install_requires=["numpy", "scipy", "torch", "scipy"],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
