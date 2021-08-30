@@ -1,11 +1,19 @@
+"""
+Module that implement prior distributions
+"""
 import numpy as np
-
 import torch
 
 
 class Prior:
+    """
+    Abstract class for priors
+    """
 
     def __init__(self, dim, n_params, C):
+        """
+        Initiliaze the prior
+        """
         self.dim = dim
         if not isinstance(C, torch.Tensor):
             raise ValueError('Parameter `C` should be a tensor of length `n_params`.')
@@ -51,7 +59,7 @@ class GaussianLaplacianPrior(Prior):
         """
         return - torch.sum(z[:self.dim] ** 2 / self.C[:self.dim]) \
                - torch.sum(z[self.dim:] / self.C[self.dim:])
-    
+
     def opt_hyper(self, z):
         """
         Optimal regularization weights for the current value of z

@@ -1,3 +1,6 @@
+"""
+Module that implements various excitation kernels for Hawkes processes
+"""
 import torch
 import numpy as np
 import math

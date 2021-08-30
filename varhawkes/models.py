@@ -1,10 +1,11 @@
+"""
+Module that implement variational probabilistic models defined by:
+    (1) a model having log-likelihood function,
+    (2) a prior
+    (3) a posterior
+"""
 import numpy as np
-
 import torch
-
-from tick.hawkes.model import (
-    ModelHawkesExpKernLogLik as _ModelHawkesExpKernLogLik
-)
 
 from .utils import softmax
 from .posteriors import Posterior
@@ -13,8 +14,15 @@ from .hawkes_model import HawkesModel
 
 
 class ModelHawkesVariational:
+    """
+    Variational Hawkes process model with importance weighted variational objective function. See
+    ```
+    https://arxiv.org/abs/1704.02916
+    ```
+    for more information on the importance weighted variational objective function.
+    """
 
-    def __init__(self, model, posterior, prior, n_samples, n_weights, weight_temp=1, device='cpu'):
+    def __init__(self, model, posterior, prior, n_samples, n_weights=1, weight_temp=1, device='cpu'):
         """
         Initialize the model
 
@@ -28,12 +36,13 @@ class ModelHawkesVariational:
             Prior object
         n_samples : int
             Number of samples used fort he Monte Carlo estimate of expectations
-        n_weights : int
-            Number of samples used for the importance weighted posterior
-        C : float
-            Inverse weight of the regularizer
-        weight_temp : float
+        n_weights : int (optional, default: 1)
+            Number of samples used for the importance weighted posterior, using a single weight is
+            equivalent to no importance weighting
+        weight_temp : float (optional, default: 1)
             Tempering weight of the importance weights
+        device : str (optional, default: 'cpu')
+            Device for `torch` tensors
         """
         if not isinstance(model, HawkesModel):
             raise ValueError("`model` should be a `HawkesModel` object")
@@ -48,16 +57,24 @@ class ModelHawkesVariational:
         self.n_samples = n_samples
         self.n_weights = n_weights
         self.weight_temp = weight_temp
-        self.n_jumps = None
-        self.dim = None
-        self.n_params = None
-        self.n_var_params = None
-        self.alpha = None
-        self.beta = None
+        # Internal attributes
+        self.n_jumps = None       # Number of jumps observed
+        self.dim = None           # Number of dimensions of the model
+        self.n_params = None      # Number of model parameters
+        self.n_var_params = None  # Number of variational parameters
+        self.alpha = None         # Variatioanl parameters (mean)
+        self.beta = None          # Variational parameters, in log-scale (standard deviation)
 
     def set_data(self, events, end_time):
         """
         Set the data for the model
+
+        Arguments:
+        ----------
+        events : list of torch.Tensors
+            List of events observed in each dimension
+        end_time : list
+            List of observation window end time in each dimension
         """
         events = [num.to(self.device) for num in events]  # Moving the tensors to GPU if available
         # Set the model object
@@ -71,6 +88,15 @@ class ModelHawkesVariational:
     def _log_importance_weight(self, eps, alpha, beta):
         """
         Compute the value of a single importance weight `log(w_i)`
+
+        Arguments:
+        ----------
+        eps : torch.Tensor
+            Random Gaussian noise
+        alpha : torch.Tensor
+            Variatioanl parameters (mean)
+        beta : torch.Tensor
+            Variational parameters in log-scale (standard deviation)
         """
         # Reparametrize the variational parameters
         z = self.posterior.g(eps, alpha, beta)
@@ -86,6 +112,19 @@ class ModelHawkesVariational:
         return loglik + logprior - logpost
 
     def _objective_l(self, eps_l, alpha, beta):
+        """
+        Compute one Monte Carlo sample of the importance weighted objective function
+        by aggregating all importance weights in `eps_l`
+
+        Arguments:
+        ----------
+        eps_l : torch.Tensor
+            Importance weighted objective functions
+        alpha : torch.Tensor
+            Variatioanl parameters (mean)
+        beta : torch.Tensor
+            Variational parameters in log-scale (standard deviation)
+        """
         log_w_arr = torch.zeros(self.n_weights, dtype=torch.float64)
         for i in range(self.n_weights):
             eps = eps_l[i]
@@ -128,6 +167,13 @@ class ModelHawkesVariational:
     def hyper_parameter_learn(self, x, momentum=0.5):
         """
         Learn the hyper parameters of the model
+
+        Arguments:
+        ----------
+        x : torch.Tensor
+            Input of the objective function, i.e. concatenated variational parameters in vector form
+        momentum : float
+            Momentum update parameter for the hyper parameters, must be between 0 and 1
         """
         opt_C_now = torch.zeros((self.n_weights, self.n_params), dtype=torch.float64)
         log_w_arr = torch.zeros(self.n_weights, dtype=torch.float64)
@@ -169,19 +215,19 @@ class ModelHawkesVariational:
 
         Arguments:
         ----------
-        alpha : np.ndarray (shape: `n_params`)
+        alpha : torch.Tensor (shape: `n_params`)
             The value of the variational parameters
-        beta : np.ndarray (shape: `n_params`)
+        beta : torch.Tensor (shape: `n_params`)
             The value of the variational parameters
         n_sample : int (optional)
             The number of Montre Carlo samples to use (if None, then the
             default `n_samples` attribute will be used)
         seed : int (optional)
-            Random seed generator for `numpy.random`
+            Random seed generator for `torch`
         """
         n_samples = n_samples or self.n_samples
         if seed:
-            np.random.seed(seed)
+            torch.manual_seed(seed)
         # Sample noise
         eps_arr_t = self.posterior.sample_epsilon(
             size=(n_samples, self.n_weights, self.n_params))

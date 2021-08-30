@@ -1,3 +1,6 @@
+"""
+Performance metrics
+"""
 import numpy as np
 import scipy
 

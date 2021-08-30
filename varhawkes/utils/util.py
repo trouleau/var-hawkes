@@ -1,5 +1,7 @@
+"""
+Utility helper functions
+"""
 import numpy as np
-
 import torch
 
 

@@ -1,8 +1,14 @@
+"""
+Module that implements the Hawkes process model
+"""
 import torch
 import numpy as np
 
 
 class HawkesModel:
+    """
+    Hawkes process model with log-likelihood function
+    """
 
     def __init__(self, excitation, verbose=False, device='cpu'):
         """
@@ -13,7 +19,9 @@ class HawkesModel:
         prior : Prior
             Prior object
         excitation: excitation
-            Excitation object
+            Excitation kernel object
+        device : str (optional, default: 'cpu')
+            Device for `torch` tensors
         """
         self.excitation = excitation
         self.n_jumps = None
